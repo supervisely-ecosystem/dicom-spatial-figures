@@ -2,20 +2,20 @@
 description: How to create Mask 3D labels on DICOM volumes in Python
 ---
 
-# Spatial labels on Volumes
+# Spatial labels on volumes
 
 ## Introduction
 
-In this tutorial, you will learn how to programmatically create classes, objects, figures, its geometries for DICOM Volumes and upload them to Supervisely platform. 
+In this tutorial, you will learn how to programmatically create classes, objects, figures, its geometries for DICOM volumes and upload them to Supervisely platform. 
 
-Supervisely supports different types of shapes / geometries for volume annotation:
+Supervisely supports different types of shapes/geometries for volume annotation:
 
 * Mask 3D
 * Mask (also known as Bitmap)
 * Bounding Box (rectangle)* - will be covered in other tutorials
 * Polygon - will be covered in other tutorials* 
 
-Learn more about [Supervisely Annotation in JSON format](https://developer.supervisely.com/api-references/supervisely-annotation-json-format/volumes-annotation) for Volumes.
+Learn more about [Supervisely Annotation in JSON format](https://developer.supervisely.com/api-references/supervisely-annotation-json-format/volumes-annotation) for volumes.
 
 ![Mask3D and Masks](https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/384c7ffc-5eb5-4920-8f02-022e59a136c8)
 
@@ -27,7 +27,7 @@ Everything you need to reproduce [this tutorial is on GitHub](https://github.com
 
 **Step 1.** Prepare  `~/supervisely.env` file with credentials. [Learn more here.](../basics-of-authentication.md#use-.env-file-recommended)
 
-**Step 2.** Clone [repository](https://github.com/supervisely-ecosystem/dicom-spatial-figures) with source code and demo data and create [Virtual Environment](https://docs.python.org/3/library/venv.html).
+**Step 2.** Clone the [repository](https://github.com/supervisely-ecosystem/dicom-spatial-figures) with source code and demo data and create a [Virtual Environment](https://docs.python.org/3/library/venv.html).
 
 ```bash
 git clone https://github.com/supervisely-ecosystem/dicom-spatial-figures
@@ -35,23 +35,24 @@ cd dicom-spatial-figures
 ./create_venv.sh
 ```
 
-**Step 3.** Open repository directory in Visual Studio Code.&#x20;
+**Step 3.** Open the repository directory in Visual Studio Code.&#x20;
 
 ```bash
 code -r .
 ```
 
-**Step 4.**   change ✅ workspace ID ✅ in `local.env` file by copying the ID from the context menu of the workspace. A new project with annotated videos will be created in the workspace you define:
+**Step 4.** Change ✅ workspace ID ✅ in `local.env` file by copying the ID from the context menu of the workspace. A new project with annotated videos will be created in the workspace you define:
 
 ```python
 WORKSPACE_ID=507 # ⬅️ change value
 ```
 
-![Copy workspace ID from context menu](https://user-images.githubusercontent.com/57998637/231221251-3dfc1a56-b851-4542-be5b-d82b2ef14176.gif)
+![Copy the workspace ID from the context menu](https://user-images.githubusercontent.com/57998637/231221251-3dfc1a56-b851-4542-be5b-d82b2ef14176.gif)
 
 **Step 5.** Start debugging `src/main.py`&#x20;
 
-![Debug tutorial in Visual Studio Code](https://user-images.githubusercontent.com/79905215/230344981-3734f92b-3cce-4209-b57d-3da8b0b33214.gif)
+
+![Debug tutorial in Visual Studio Code](https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/fd7e4d95-8347-4f58-abbe-3cf0f2e67555)
 
 ## Python Code
 
@@ -59,24 +60,26 @@ WORKSPACE_ID=507 # ⬅️ change value
 
 ```python
 import os
-from os.path import join
 
 from dotenv import load_dotenv
 
 import supervisely as sly
+import numpy as np
 ```
 
 ### &#x20;Init API client
 
-Init api for communicating with Supervisely Instance. First, we load environment variables with credentials and workspace ID:
+Init API for communicating with Supervisely Instance. First, we load environment variables with credentials and workspace ID:
 
 ```python
-load_dotenv("local.env")
-load_dotenv(os.path.expanduser("~/supervisely.env"))
+if sly.is_development():
+    load_dotenv("local.env")
+    load_dotenv(os.path.expanduser("~/supervisely.env"))
+
 api = sly.Api()
 ```
 
-With next lines we will check the you did everything right - API client initialized with correct credentials and you defined the correct workspace ID in `local.env`.
+With the next lines, we will check that you did everything right - the API client initialized with the correct credentials and you defined the correct workspace ID in `local.env`.
 
 ```python
 workspace_id = sly.env.workspace_id()
@@ -88,152 +91,179 @@ if workspace is None:
 
 ### Create project
 
-Create empty project with name **"Demo"** with one dataset **"orange & kiwi"** in your workspace on server. If the project with the same name exists in your dataset, it will be automatically renamed (Demo\_001, Demo\_002, etc ...) to avoid name collisions.&#x20;
+Create an empty project with the name **"DICOM Volumes Demo"** with one dataset **"Lungs"** in your workspace on the server. If a project with the same name exists in your dataset, it will be automatically renamed (DICOM Volumes Demo\_001, DICOM Volumes Demo\_002, etc.) to avoid name collisions.&#x20;
 
 ```python
 project = api.project.create(
     workspace.id,
-    name="Demo",
-    type=sly.ProjectType.VIDEOS,
+    name="DICOM Volumes Demo",
+    type=sly.ProjectType.VOLUMES,
     change_name_if_conflict=True,
 )
-dataset = api.dataset.create(project.id, name="orange & kiwi")
-print(f"Project has been sucessfully created, id={project.id}")
+dataset = api.dataset.create(project.id, name="Lungs")
+sly.logger.info(f"Project has been sucessfully created, id={project.id}")
 ```
 
-### Upload video to the dataset on server
+### Upload DICOM volume to the dataset on the server
 
 ```python
-video_path = "data/orange_kiwi.mp4"
-video_name = sly.fs.get_file_name_with_ext(video_path)
-video_info = api.video.upload_path(dataset.id, video_name, video_path)
-print(f"Video has been sucessfully uploaded, id={video_info.id}")
+dicom_dir_name = "data/CTChest"
+
+series_infos = sly.volume.inspect_dicom_series(root_dir=dicom_dir_name)
+
+for serie_id, files in series_infos.items():
+    item_path = files[0]
+    name = f"CTChest.nrrd"
+    dicom_info = api.volume.upload_dicom_serie_paths(
+        dataset_id=dataset.id,
+        name=name,
+        paths=files,
+        anonymize=True,
+    )
+    sly.logger.info(
+        f"DICOM volume has been uploaded to Supervisely with ID: {dicom_info.id}"
+    )
 ```
 
 ### Create annotation classes and update project meta
 
-Color will be automatically generated if the class was created without `color` argument.
+Color will be automatically generated if the class is created without a `color` argument.
 
 ```python
-kiwi_obj_cls = sly.ObjClass("kiwi", sly.Rectangle, color=[0, 0, 255])
-orange_obj_cls = sly.ObjClass("orange", sly.Bitmap, color=[255, 255, 0])
+lung_obj_class = sly.ObjClass("lung", sly.Mask3D)
+body_obj_class = sly.ObjClass("body", sly.Bitmap)
 ```
 
 The next step is to create ProjectMeta - a collection of annotation classes and tags that will be available for labeling in the project.
 
 ```python
-project_meta = sly.ProjectMeta(obj_classes=[kiwi_obj_cls, orange_obj_cls])
+project_meta = sly.ProjectMeta(obj_classes=[lung_obj_class, body_obj_class])
 ```
 
-And finally, we need to set up classes in our project on server:
+Finally, we need to set up classes in our project on the server:
 
 ```python
 api.project.update_meta(project.id, project_meta.to_json())
 ```
 
-### Prepare source data
+### Prepare source data for Mask
 
 ```python
-masks_dir = "data/masks"
-
-# prepare rectangle points for 10 demo frames
-points = [
-    [136, 632, 350, 817],
-    [139, 655, 355, 842],
-    [145, 672, 361, 864],
-    [158, 700, 366, 885],
-    [153, 700, 367, 885],
-    [156, 724, 375, 914],
-    [164, 745, 385, 926],
-    [177, 770, 396, 944],
-    [189, 793, 410, 966],
-    [199, 806, 417, 980],
-]
+# full raw Mask data you will find in main.py
+raw_bitmap_data = "eJwBDgjx94lQTkcNChoKAAAADUlIRFIAAAGgAAABRgEDAAAAFu..."
 ```
 
-### Create video objects
+### Create a volume object for Mask named 'body'
 
 ```python
-orange = sly.VideoObject(orange_obj_cls)
-kiwi = sly.VideoObject(kiwi_obj_cls)
+body = sly.VolumeObject(body_obj_class)
 ```
 
-### Create masks, rectangles, frames and figures
+### Create Mask figure
 
-We are going to create ten masks from the following black and white images:
-
-![Ten black-and-white masks for every orange](https://user-images.githubusercontent.com/79905215/230339269-0f1c20c3-d0a5-4f96-b661-bb3d92aa86d7.png)
-
-{% hint style="info" %}
-Mask has to be the same size as the video&#x20;
-{% endhint %}
-
-Supervisely SDK allows creating masks from NumPy arrays with the following values:
-
-* `0` - nothing, `1` - pixels of target mask
-* `0` - nothing, `255` - pixels of target mask
-* `False` - nothing, `True` - pixels of target mask
+Before creating the geometry, we need to convert the raw data into an `ndarray`.
+After that, define the `PointLocation` to properly apply the mask to the image.
+Once the geometry is created, it's time to prepare the `VolumeFigure`. To do this, we use a `VolumeObject` named body, and geometry and select the plane (`"axial"`) with the slice number.
 
 ```python
-frames = []
-for mask in os.listdir(masks_dir):
-    fr_index = int(sly.fs.get_file_name(mask).split("_")[-1])
-    mask_path = join(masks_dir, mask)
-
-    # orange will be labeled with a masks.
-    # supports masks with values (0, 1) or (0, 255) or (False, True)
-    bitmap = sly.Bitmap.from_path(mask_path)
-
-    # kiwi will be labeled with a bounding box.
-    bbox = sly.Rectangle(*points[fr_index])
-
-    mask_figure = sly.VideoFigure(orange, bitmap, fr_index)
-    bbox_figure = sly.VideoFigure(kiwi, bbox, fr_index)
-
-    frame = sly.Frame(fr_index, figures=[mask_figure, bbox_figure])
-    frames.append(frame)
+bitmap_data = sly.Bitmap.base64_2_data(raw_bitmap_data)
+bitmap_origin = sly.PointLocation(91, 36)
+bitmap_geometry = sly.Bitmap(bitmap_data, bitmap_origin)
+bitmap_figure = sly.VolumeFigure(body, bitmap_geometry, "axial", 69)
 ```
 
-
-### Create `VideoObjectCollection` and `FrameCollection`
-
-```python
-objects = sly.VideoObjectCollection([kiwi, orange])
-frames = sly.FrameCollection(frames)
-```
-
-### Get video file info
+### Create `Slice` and `Plane`
 
 ```python
-frame_size, vlength = sly.video.get_image_size_and_frames_count(video_path)
-```
-
-### Create video annotation
-
-[Learn more](https://developer.supervise.ly/api-references/supervisely-annotation-json-format/individual-video-annotations) about VideoAnnotation JSON format.
-```python
-video_ann = sly.VideoAnnotation(
-    img_size=frame_size,
-    frames_count=vlength,
-    objects=objects,
-    frames=frames,
+volume_slice = sly.Slice(69, figures=[bitmap_figure])
+plane = sly.Plane(
+    plane_name="axial", 
+    items=[volume_slice], 
+    volume_meta=dicom_info.meta
 )
 ```
 
-### Upload annotation to the video on server
+### Prepare source data for Mask 3D
+
+We will use the prepared .nrrd file to load geometry as bytes
 
 ```python
-api.video.annotation.append(video_info.id, video_ann)
-print(f"Annotation has been sucessfully uploaded to the video {video_name}")
+mask_dir_name = "data/mask"
+mask_path = os.path.join(mask_dir_name, "lung.nrrd")
+with open(mask_path, "rb") as file:
+    geometry_bytes = file.read()
 ```
 
-In the [GitHub repository for this tutorial](https://github.com/supervisely-ecosystem/video-figures), you will find the [full python script](https://github.com/supervisely-ecosystem/video-figures/blob/master/src/main.py).
+### Create a volume object for Mask 3D named 'lung'
+
+```python
+lung = sly.VolumeObject(lung_obj_class)
+```
+
+### Create an empty Mask 3D figure
+
+To upload this empty spatial figure as a dummy for future geometry loading and thus conversion to a normal spatial figure
+
+```python
+empty_figure = sly.VolumeFigure(
+    lung, 
+    sly.Mask3D(np.zeros((3, 3, 3), dtype=np.bool_)), 
+    None, 
+    None
+)
+```
+
+### Create `VolumeObjectCollection`
+
+This will allow us to add all the objects at once
+
+```python
+objects = sly.VolumeObjectCollection([lung, body])
+```
+
+
+### Create volume annotation
+
+For more information about the VolumeAnnotation in JSON format, please use the link at the beginning of this article
+
+💡**2D figures** will be added via planes, a **3D figures** always are spatial figures!
+
+```python
+volume_ann = sly.VolumeAnnotation(
+    dicom_info.meta,
+    objects,
+    plane_axial=plane,
+    spatial_figures=[empty_figure],
+)
+```
+
+### Upload annotation to the volume on the server
+
+```python
+key_id_map = sly.KeyIdMap()
+api.volume.annotation.append(
+    dicom_info.id,
+    volume_ann, 
+    key_id_map
+)
+sly.logger.info(f"Annotation has been sucessfully uploaded to the Volume {dicom_info.name}")
+```
+### Upload geometry to Mask 3D spatial figure
+```python
+api.volume.figure.upload_sf_geometry(
+    volume_ann.spatial_figures,
+    [geometry_bytes], 
+    key_id_map
+)
+sly.logger.info(f"Geometry has been sucessfully uploaded to the figure")
+```
+In the [GitHub repository for this tutorial](https://github.com/supervisely-ecosystem/dicom-spatial-figures), you will find the [full Python script](https://github.com/supervisely-ecosystem/dicom-spatial-figures/blob/master/src/main.py).
 
 ## Recap
 
-In this tutorial we learned how to&#x20;
+In this tutorial, we learned how to&#x20;
 
-* quickly configure python development for Supervisely
-* how to create a project and dataset with classes of different shapes
-* how to initialize rectangles, masks for video frames
-* how to construct Supervisely annotation and upload it with an videos to server
+* Quickly configure Python development for Supervisely
+* Create a project and dataset with classes of different shapes
+* Initialize Mask, Mask 3D for volumes
+* Construct Supervisely annotation and upload it with a volume to the server
