@@ -32,7 +32,7 @@ project = api.project.create(
     type=sly.ProjectType.VOLUMES,
     change_name_if_conflict=True,
 )
-dataset = api.dataset.create(project.id, name="Lungs")
+dataset = api.dataset.create(project.id, name="CTChest")
 sly.logger.info(f"Project has been sucessfully created, id={project.id}")
 
 
