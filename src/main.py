@@ -23,9 +23,6 @@ if workspace is None:
 ###################    create empty project and dataset    #########################
 ############################    upload volume    ###################################
 
-dicom_dir_name = "data/CTChest_dcm"
-nrrd_dir_name = "data/CTChest_nrrd"
-
 # create empty project and dataset on server
 project = api.project.create(
     workspace.id,
@@ -38,6 +35,8 @@ dataset_nrrd = api.dataset.create(project.id, name="CTChest_nrrd")
 sly.logger.info(f"Project has been sucessfully created, id={project.id}")
 
 name = "CTChest.nrrd"
+dicom_dir_name = "data/CTChest_dcm"
+nrrd_dir_name = "data/CTChest_nrrd"
 
 # OPTION 1
 # upload DICOM series to the dataset on server
