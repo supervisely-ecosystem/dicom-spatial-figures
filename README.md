@@ -1,5 +1,5 @@
 ---
-description: How to create Mask 3D labels on DICOM volumes in Python
+description: How to create Mask 3D and Mask 2D (Bitmap) on DICOM volumes in Python
 ---
 
 # Spatial labels on volumes
@@ -16,6 +16,8 @@ Supervisely supports different types of shapes/geometries for volume annotation:
 * Polygon - will be covered in other tutorials* 
 
 Learn more about [Supervisely Annotation in JSON format](https://developer.supervisely.com/api-references/supervisely-annotation-json-format/volumes-annotation) for volumes.
+
+You can also use ready-made solutions for labeling. Read about how it works in our blog article [Best DICOM & NIfTI annotation tools for Medical Imaging AI](https://supervisely.com/blog/dicom-labeling-toolbox/) and take full advantage of our platform.
 
 ![Mask3D and Masks](https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/384c7ffc-5eb5-4920-8f02-022e59a136c8)
 
@@ -100,11 +102,13 @@ project = api.project.create(
     type=sly.ProjectType.VOLUMES,
     change_name_if_conflict=True,
 )
-dataset = api.dataset.create(project.id, name="Lungs")
+dataset = api.dataset.create(project.id, name="CTChest")
 sly.logger.info(f"Project has been sucessfully created, id={project.id}")
 ```
 
 ### Upload DICOM volume to the dataset on the server
+
+The volume data will be represented as s set of `.dcm` files.
 
 ```python
 dicom_dir_name = "data/CTChest"
@@ -127,7 +131,8 @@ for serie_id, files in series_infos.items():
 
 ### Create annotation classes and update project meta
 
-Color will be automatically generated if the class is created without a `color` argument.
+In this tutorial, classes are created without the `color` argument, the color will be generated automatically.
+To set the color for a class, you need to add the `color` argument.
 
 ```python
 lung_obj_class = sly.ObjClass("lung", sly.Mask3D)
@@ -140,20 +145,22 @@ The next step is to create ProjectMeta - a collection of annotation classes and 
 project_meta = sly.ProjectMeta(obj_classes=[lung_obj_class, body_obj_class])
 ```
 
-Finally, we need to set up classes in our project on the server:
+Finally, we need to send all this data to our project to the server:
 
 ```python
 api.project.update_meta(project.id, project_meta.to_json())
 ```
 
-### Prepare source data for Mask
+### Prepare source data for Mask (Bitmap)
 
 ```python
-# full raw Mask data you will find in main.py
+# full raw data for the Mask (Bitmap) can be found in main.py
 raw_bitmap_data = "eJwBDgjx94lQTkcNChoKAAAADUlIRFIAAAGgAAABRgEDAAAAFu..."
 ```
 
 ### Create a volume object for Mask named 'body'
+
+The object must be bound to the corresponding class
 
 ```python
 body = sly.VolumeObject(body_obj_class)
@@ -161,9 +168,9 @@ body = sly.VolumeObject(body_obj_class)
 
 ### Create Mask figure
 
-Before creating the geometry, we need to convert the raw data into an `ndarray`.
-After that, define the `PointLocation` to properly apply the mask to the image.
-Once the geometry is created, it's time to prepare the `VolumeFigure`. To do this, we use a `VolumeObject` named body, and geometry and select the plane (`"axial"`) with the slice number.
+Before creating the geometry, we need to convert the raw data into an `ndarray`. For this purpose will be used method `base64_2_data`.
+After that, define the `PointLocation` to properly apply the mask to the image. This point indicates where the top-left corner of the mask is located, or in other words, the coordinates of the mask's initial position on the canvas or image.
+Once the geometry is created, it's time to prepare the `VolumeFigure`. To do this, we use a `VolumeObject` named **"body"**, and geometry and select the plane (`"axial"`) where the figure will be placed, the slice number which represents a certain image on this plane.
 
 ```python
 bitmap_data = sly.Bitmap.base64_2_data(raw_bitmap_data)
@@ -172,7 +179,7 @@ bitmap_geometry = sly.Bitmap(bitmap_data, bitmap_origin)
 bitmap_figure = sly.VolumeFigure(body, bitmap_geometry, "axial", 69)
 ```
 
-### Create `Slice` and `Plane`
+### Create `Slice` and `Plane` objects
 
 ```python
 volume_slice = sly.Slice(69, figures=[bitmap_figure])
@@ -185,7 +192,7 @@ plane = sly.Plane(
 
 ### Prepare source data for Mask 3D
 
-We will use the prepared .nrrd file to load geometry as bytes
+For this type of shape, we will use the prepared .nrrd file to load geometry as bytes
 
 ```python
 mask_dir_name = "data/mask"
@@ -202,7 +209,7 @@ lung = sly.VolumeObject(lung_obj_class)
 
 ### Create an empty Mask 3D figure
 
-To upload this empty spatial figure as a dummy for future geometry loading and thus conversion to a normal spatial figure
+This empty spatial figure will be uploaded as a dummy for future geometry loading and thus conversion to a normal spatial figure. 
 
 ```python
 empty_figure = sly.VolumeFigure(
@@ -215,18 +222,19 @@ empty_figure = sly.VolumeFigure(
 
 ### Create `VolumeObjectCollection`
 
-This will allow us to add all the objects at once
+This will allow us to add all the volume objects at once.
 
 ```python
 objects = sly.VolumeObjectCollection([lung, body])
 ```
 
-
 ### Create volume annotation
 
 For more information about the VolumeAnnotation in JSON format, please use the link at the beginning of this article
 
-💡**2D figures** will be added via planes, a **3D figures** always are spatial figures!
+{% hint style="info" %}
+💡**2D figures** will be added as common figures with planes, a **3D figures**  - always are spatial figures!
+{% endhint %}
 
 ```python
 volume_ann = sly.VolumeAnnotation(
@@ -248,7 +256,9 @@ api.volume.annotation.append(
 )
 sly.logger.info(f"Annotation has been sucessfully uploaded to the Volume {dicom_info.name}")
 ```
+
 ### Upload geometry to Mask 3D spatial figure
+
 ```python
 api.volume.figure.upload_sf_geometry(
     volume_ann.spatial_figures,
@@ -257,6 +267,7 @@ api.volume.figure.upload_sf_geometry(
 )
 sly.logger.info(f"Geometry has been sucessfully uploaded to the figure")
 ```
+
 In the [GitHub repository for this tutorial](https://github.com/supervisely-ecosystem/dicom-spatial-figures), you will find the [full Python script](https://github.com/supervisely-ecosystem/dicom-spatial-figures/blob/master/src/main.py).
 
 ## Recap
