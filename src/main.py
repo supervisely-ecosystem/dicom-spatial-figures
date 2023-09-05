@@ -57,7 +57,7 @@ for _, files in series_infos.items():
     )
 
 # OPTION 2
-# upload NRRD volume as nparray
+# upload NRRD volume as ndarray
 
 nrrd_path = os.path.join(nrrd_dir_name, name)
 nrrd_volume_np, nrrd_volume_meta = sly.volume.read_nrrd_serie_volume_np(nrrd_path)
