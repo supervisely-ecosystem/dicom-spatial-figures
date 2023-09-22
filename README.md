@@ -32,16 +32,16 @@ Everything you need to reproduce [this tutorial is on GitHub](https://github.com
 
    The easiest way to create **Mask3D** annotation in Supervisely is to use NRRD file with 3D figure that corresponds to the dimensions of the Volume.
 
-   <img width="960" alt="volume_mask" src="https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/e420a798-d376-40fc-b118-44c62615aef2">
+   <img width="960" alt="NRRD" src="https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/e420a798-d376-40fc-b118-44c62615aef2">
 
-   This NRRD example you will found in `data/mask/lung.nrrd`
+   This NRRD example you will find in `data/mask/lung.nrrd`
 
 
-2. **Dtata Arrays**
+2. **Data Arrays**
    
-   In the process, 3D objects can be created, to create **Mask3D** annotation from which it is sufficient to provide them as an `ndarray`, where 1 pixels of the object and 0 is empty space.
+   In the process, 3D objects can be created, to create **Mask3D** annotation from which it is sufficient to provide them as a `ndarray`, where 1 pixels of the object and 0 is empty space.
 
-   <img width="728" alt="array" src="https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/d4feb39e-a837-43c9-bbac-3c6d2ef4942d">
+   <img width="728" alt="Data Array" src="https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/d4feb39e-a837-43c9-bbac-3c6d2ef4942d">
 
 
    ```python
@@ -56,9 +56,9 @@ Everything you need to reproduce [this tutorial is on GitHub](https://github.com
    
     You can also use flat mask annotations, such as black and white pictures, and create **Mask3D** from them. You just need to know which plane and slice it refers to.
 
-    <img width="950" alt="mask2d" src="https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/52070b6a-9f34-46e8-94c2-6736b3a9732d">
+    <img width="950" alt="Image" src="https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/52070b6a-9f34-46e8-94c2-6736b3a9732d">
     
-    This image file example you will found in `data/mask/body.png`
+    This image file example you will find in `data/mask/body.png`
 
 
 
@@ -74,7 +74,7 @@ Everything you need to reproduce [this tutorial is on GitHub](https://github.com
 
 ## Python Code
 
-### &#x20;Import libraries and init API client
+### Import libraries and init API client
 
 ```python
 import os
@@ -127,7 +127,7 @@ volume_info = api.volume.upload_nrrd_serie_path(
 ```
 
 
-### Create annotations
+### Create annotations and upload into the volume
 
 In this tutorial, classes are created without the `color` argument, the color will be generated automatically.
 To set the color for a class, you need to add the `color` argument.
@@ -156,6 +156,18 @@ lung_mask_3d = sly.Mask3D.from_file(mask3d_path)
 # create VolumeObjects with Mask3D
 lung = sly.VolumeObject(lung_class, mask_3d=body_mask_3d)
 body = sly.VolumeObject(body_class, mask_3d=lung_mask_3d)
+
+# create volume annotation object
+volume_ann = sly.VolumeAnnotation(
+    volume_info.meta,
+    objects=[lung, body],
+    spatial_figures=[lung.figure, body.figure],
+)
+
+# upload VolumeAnnotation
+api.volume.annotation.append(volume_info.id, volume_ann)
+sly.logger.info(
+    f"Annotation has been sucessfully uploaded to the volume {volume_info.name} in dataset with ID={volume_info.dataset_id}"
 ```
 
 In the [GitHub repository for this tutorial](https://github.com/supervisely-ecosystem/dicom-spatial-figures), you will find the [full Python script](https://github.com/supervisely-ecosystem/dicom-spatial-figures/blob/master/src/main.py).
@@ -163,7 +175,7 @@ In the [GitHub repository for this tutorial](https://github.com/supervisely-ecos
 
 ## How to debug this tutorial
 
-**Step 1.** Prepare  `~/supervisely.env` file with credentials. [Learn more here.](../basics-of-authentication.md#use-.env-file-recommended)
+**Step 1.** Prepare `~/supervisely.env` file with credentials. [Learn more here.](../basics-of-authentication.md#use-.env-file-recommended)
 
 **Step 2.** Clone the [repository](https://github.com/supervisely-ecosystem/dicom-spatial-figures) with source code and demo data and create a [Virtual Environment](https://docs.python.org/3/library/venv.html).
 
@@ -173,7 +185,7 @@ cd dicom-spatial-figures
 ./create_venv.sh
 ```
 
-**Step 3.** Open the repository directory in Visual Studio Code.&#x20;
+**Step 3.** Open the repository directory in Visual Studio Code.
 
 ```bash
 code -r .
@@ -185,9 +197,9 @@ code -r .
 WORKSPACE_ID=696 # ⬅️ change value
 ```
 
-![Copy the workspace ID from the context menu](https://user-images.githubusercontent.com/57998637/231221251-3dfc1a56-b851-4542-be5b-d82b2ef14176.gif)
+<img src="https://user-images.githubusercontent.com/57998637/231221251-3dfc1a56-b851-4542-be5b-d82b2ef14176.gif" width="550" alt="Copy the workspace ID from the context menu"/>
 
-**Step 5.** Start debugging `src/main.py`&#x20;
+**Step 5.** Start debugging `src/main.py`
 
 
 ![Debug tutorial in Visual Studio Code](https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/00e3bad9-ed37-42ea-86f0-43eab647f994)
