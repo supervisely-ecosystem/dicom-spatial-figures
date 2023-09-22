@@ -145,8 +145,10 @@ api.project.append_classes(project_info.id, [lung_class, body_class])
 # create Mask3D object for 'body' annotation using 2D mask (image)
 mask_2d = Image.open(mask2d_path)
 mask_2d = np.array(mask_2d)
+# create an empty mask with the same dimensions as the volume
 body_mask_3d = sly.Mask3D(np.zeros(volume_info.file_meta["sizes"], np.bool_))
-body_mask_3d.add_mask_2d(mask_2d, "axial", 69, [36, 91])
+# fill this mask with the an image mask for the desired plane
+body_mask_3d.add_mask_2d(mask_2d, plane_name="axial", slice_index=69, origin=[36, 91])
 
 # create Mask3D object for 'lung' annotation using NRRD file with 3D Object
 lung_mask_3d = sly.Mask3D.from_file(mask3d_path)
@@ -200,7 +202,7 @@ WORKSPACE_ID=696 # ⬅️ change value
 **Step 5.** Start debugging `src/main.py`
 
 
-![Debug tutorial in Visual Studio Code](https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/00e3bad9-ed37-42ea-86f0-43eab647f994)
+![Debug tutorial in Visual Studio Code](https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/80f03dd0-c819-49a0-925f-d386b1c8ba7a)
 
 ## To sum up
 
