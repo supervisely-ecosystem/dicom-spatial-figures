@@ -51,8 +51,8 @@ mask2d_path = "data/mask/body.png"
 mask3d_path = "data/mask/lung.nrrd"
 
 # create annotation classes
-lung_class = sly.ObjClass("lung", sly.Mask3D)
-body_class = sly.ObjClass("body", sly.Mask3D)
+lung_class = sly.ObjClass("lung", sly.Mask3D, color=[111, 107, 151])
+body_class = sly.ObjClass("body", sly.Mask3D, color=[209, 192, 129])
 
 # update project meta with new classes
 api.project.append_classes(project_info.id, [lung_class, body_class])

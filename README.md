@@ -102,7 +102,7 @@ if workspace is None:
 
 ### Create project and upload volumes
 
-Create an empty project with the name **"Volumes Demo"** with one dataset **"CTChest"** in your workspace on the server. If a project with the same name exists in your workspace, it will be automatically renamed (Volumes Demo\_001, Volumes Demo\_002, etc.) to avoid name collisions.&#x20;
+Create an empty project with the name **"Volumes Demo"** with one dataset **"CTChest"** in your workspace on the server. If a project with the same name exists in your workspace, it will be automatically renamed (Volumes Demo\_001, Volumes Demo\_002, etc.) to avoid name collisions.
 
 ```python
 # create empty project and dataset on server
@@ -129,8 +129,6 @@ volume_info = api.volume.upload_nrrd_serie_path(
 
 ### Create annotations and upload into the volume
 
-In this tutorial, classes are created without the `color` argument, the color will be generated automatically.
-To set the color for a class, you need to add the `color` argument.
 
 ```python
 
@@ -138,8 +136,8 @@ mask2d_path = "data/mask/body.png"
 mask3d_path = "data/mask/lung.nrrd"
 
 # create annotation classes
-lung_class = sly.ObjClass("lung", sly.Mask3D)
-body_class = sly.ObjClass("body", sly.Mask3D)
+lung_class = sly.ObjClass("lung", sly.Mask3D, color=[111, 107, 151])
+body_class = sly.ObjClass("body", sly.Mask3D, color=[209, 192, 129])
 
 # update project meta with new classes
 api.project.append_classes(project_info.id, [lung_class, body_class])
