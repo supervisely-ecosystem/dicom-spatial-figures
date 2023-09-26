@@ -42,7 +42,7 @@ During your work, you can create 3D annotation shapes, and here are a few ways y
 
     <img width="728" alt="Data Array" src="https://github.com/supervisely-ecosystem/dicom-spatial-figures/assets/57998637/d4feb39e-a837-43c9-bbac-3c6d2ef4942d">
 
-    On the right side, you can see a volume with a purple cuboid. The volume is represented as an array.
+    On the right side, you can see a volume with a purple cuboid. Let's represent this volume as an NumPy array.
 
     ```python   
     figure_array = np.zeros((3, 4, 2))
