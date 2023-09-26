@@ -10,7 +10,7 @@ In this tutorial, you will learn how to programmatically create 3D annotations f
 
 Supervisely supports different types of shapes/geometries for volume annotation, and now we will consider the primary type - **Mask3D**.
 
-Sure, you can explore other types as well, like Mask (also known as Bitmap), Bounding Box (Rectangle), and Polygon. However, you'll find more information about them in different articles.
+You can explore other types as well, like Mask (also known as Bitmap), Bounding Box (Rectangle), and Polygon. However, you'll find more information about them in other articles.
 
 Learn more about [Supervisely Annotation in JSON format](https://developer.supervisely.com/api-references/supervisely-annotation-json-format/volumes-annotation) for volumes.
 
