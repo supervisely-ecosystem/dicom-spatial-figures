@@ -1,10 +1,11 @@
 import os
 import numpy as np
+import cv2
 from dotenv import load_dotenv
-from PIL import Image
 import supervisely as sly
 
-# for convenient debug, has no effect in production
+# To init API for communicating with Supervisely Instance.
+# It needs to load environment variables with credentials and workspace ID
 if sly.is_development():
     load_dotenv("local.env")
     load_dotenv(os.path.expanduser("~/supervisely.env"))
@@ -47,40 +48,51 @@ volume_info = api.volume.upload_nrrd_serie_path(
 ######################## Create annotations for volume ############################
 ###################################################################################
 
-mask2d_path = "data/mask/body.png"
 mask3d_path = "data/mask/lung.nrrd"
+image_path = "data/mask/body.png"
 
 # create annotation classes
 lung_class = sly.ObjClass("lung", sly.Mask3D, color=[111, 107, 151])
 body_class = sly.ObjClass("body", sly.Mask3D, color=[209, 192, 129])
+fbody_class = sly.ObjClass("foreign_body", sly.Mask3D, color=[255, 153, 204])
 
 # update project meta with new classes
-api.project.append_classes(project_info.id, [lung_class, body_class])
-
-# create Mask3D object for 'body' annotation using 2D mask (image)
-mask_2d = Image.open(mask2d_path)
-mask_2d = np.array(mask_2d)
-# create an empty mask with the same dimensions as the volume
-body_mask_3d = sly.Mask3D(np.zeros(volume_info.file_meta["sizes"], np.bool_))
-# fill this mask with the an image mask for the desired plane
-body_mask_3d.add_mask_2d(mask_2d, plane_name="axial", slice_index=69, origin=[36, 91])
+api.project.append_classes(project_info.id, [lung_class, fbody_class, body_class])
 
 # create Mask3D object for 'lung' annotation using NRRD file with 3D Object
-lung_mask_3d = sly.Mask3D.from_file(mask3d_path)
+lung_mask = sly.Mask3D.from_file(mask3d_path)
+lung = sly.VolumeObject(lung_class, mask_3d=lung_mask)
 
-# create VolumeObjects with Mask3D
-lung = sly.VolumeObject(lung_class, mask_3d=body_mask_3d)
-body = sly.VolumeObject(body_class, mask_3d=lung_mask_3d)
 
-################################    Part 4    ######################################
+# create Mask3D object for 'foreign_body' annotation using NumPy array representing the sphere
+width, height, depth = (512, 512, 139)  # volume shape
+center = np.array([128, 242, 69])  # sphere center in the volume
+radius = 25
+x, y, z = np.ogrid[:width, :height, :depth]
+fbody_mask = (
+    (x - center[0]) ** 2 + (y - center[1]) ** 2 + (z - center[2]) ** 2 <= radius**2
+).astype(np.uint8)
+fbody_mask = sly.Mask3D(fbody_mask)
+foreign_body = sly.VolumeObject(fbody_class, mask_3d=fbody_mask)
+
+
+# create Mask3D object for 'body' annotation using image file
+mask = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+# create an empty mask with the same dimensions as the volume
+body_mask = sly.Mask3D(np.zeros(volume_info.file_meta["sizes"], np.bool_))
+# fill this mask with the an image mask for the desired plane
+body_mask.add_mask_2d(mask, plane_name="axial", slice_index=69, origin=[36, 91])
+body = sly.VolumeObject(body_class, mask_3d=body_mask)
+
+################################    Part 3    ######################################
 ################### Upload annotation into the volume on server ####################
 ####################################################################################
 
 # create volume annotation object
 volume_ann = sly.VolumeAnnotation(
     volume_info.meta,
-    objects=[lung, body],
-    spatial_figures=[lung.figure, body.figure],
+    objects=[lung, foreign_body, body],
+    spatial_figures=[lung.figure, foreign_body.figure, body.figure],
 )
 
 # upload VolumeAnnotation
