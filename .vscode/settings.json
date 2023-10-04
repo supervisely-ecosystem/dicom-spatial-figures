@@ -17,7 +17,11 @@
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
-    "editor.formatOnPaste": false,
-    "editor.maxTokenizationLineLength": 100
-  }
+    "editor.formatOnPaste": false
+  },
+  "editor.defaultFormatter": "ms-python.black-formatter",
+  "black-formatter.args": [
+        "--line-length",
+        "100"
+    ],
 }
