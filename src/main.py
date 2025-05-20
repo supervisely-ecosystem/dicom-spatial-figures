@@ -103,3 +103,41 @@ api.volume.annotation.append(volume_info.id, volume_ann)
 sly.logger.info(
     f"Annotation has been sucessfully uploaded to the volume {volume_info.name} in dataset with ID={volume_info.dataset_id}"
 )
+
+# ----------------------------------------------------------------------------------------
+
+volume_id = os.getenv("VOLUME_ID")
+project_id = sly.env.project_id()
+project_meta = sly.ProjectMeta.from_json(api.project.get_meta(project_id))
+key_id_map = sly.KeyIdMap()
+
+################################## 4 Download Ann ########################################
+
+# download json annotation and deserialize it
+ann_json = api.volume.annotation.download(volume_id)
+ann = sly.VolumeAnnotation.from_json(ann_json, project_meta, key_id_map)
+
+# load spatial geometries
+for figure in ann.spatial_figures:
+    api.volume.figure.load_sf_geometry(figure, key_id_map)
+
+
+################################## 5 Alter Geometries & reupload #######################################
+
+new_sfs = []
+for figure in ann.spatial_figures:
+    # invert the mask
+    inverted_mask_array = np.invert(figure.geometry.data)
+
+    # create a new object with the inverted mask
+    new_geometry = sly.Mask3D.clone(figure.geometry)
+    new_geometry.data = inverted_mask_array
+
+    # add the new figure to the list of spatial figures
+    new_sfs.append(sly.VolumeFigure.clone(figure, geometry=new_geometry))
+
+# clone the annotation with the new spatial figures
+new_ann = sly.VolumeAnnotation.clone(ann, spatial_figures=new_sfs)
+
+# upload the new annotation
+api.volume.annotation.append(volume_id, new_ann, key_id_map)
