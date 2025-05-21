@@ -141,3 +141,28 @@ new_ann = sly.VolumeAnnotation.clone(ann, spatial_figures=new_sfs)
 
 # upload the new annotation
 api.volume.annotation.append(volume_id, new_ann, key_id_map)
+
+# -----------------------------------------------------------------------------------------
+
+for figure in ann.spatial_figures:
+    # load the spatial geometry first
+    api.volume.figure.load_sf_geometry(figure, key_id_map)
+
+    # python Trimesh object
+    mesh = sly.volume.volume.convert_3d_geometry_to_mesh(
+        figure.geometry,
+        spacing=(0.9, 0.9, 1.5),
+        level=0.8,
+        apply_decimation=True,
+        decimation_fraction=0.4,
+    )
+
+    # export to STL file
+    out_path = figure.geometry.sly_id + ".stl"  # or ".obj"
+    conversion_kwargs = {
+        "spacing": (0.9, 0.9, 1.5),
+        "level": 0.8,
+        "apply_decimation": True,
+        "decimation_fraction": 0.4,
+    }
+    sly.volume.volume.export_3d_as_mesh(figure.geometry, out_path, kwargs=conversion_kwargs)
